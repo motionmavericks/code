@@ -34,6 +34,7 @@ pub enum SlashCommand {
     Github,
     Mcp,
     Resume,
+    Orchestrate,
     // Prompt-expanding commands
     Plan,
     Solve,
@@ -69,6 +70,7 @@ impl SlashCommand {
             SlashCommand::Branch => "create a worktree branch and switch (/branch [task])",
             SlashCommand::Github => "GitHub Actions watcher (status/on/off)",
             SlashCommand::Mcp => "manage MCP servers (status/on/off/add)",
+            SlashCommand::Orchestrate => "plan→solve→code with transcripts (Agent‑OS)",
             SlashCommand::Perf => "performance tracing (on/off/show/reset)",
             SlashCommand::Logout => "log out of Code",
             #[cfg(debug_assertions)]
@@ -94,7 +96,7 @@ impl SlashCommand {
     pub fn requires_arguments(self) -> bool {
         matches!(
             self,
-            SlashCommand::Plan | SlashCommand::Solve | SlashCommand::Code
+            SlashCommand::Plan | SlashCommand::Solve | SlashCommand::Code | SlashCommand::Orchestrate
         )
     }
 
@@ -118,6 +120,7 @@ impl SlashCommand {
             SlashCommand::Code => Some(codex_core::slash_commands::format_code_command(
                 args, None, None,
             )),
+            // Orchestrate is not prompt-expanding; handled as a regular command
             _ => None,
         }
     }

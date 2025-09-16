@@ -7243,6 +7243,91 @@ impl ChatWidget<'_> {
         self.history_push(history_cell::new_background_event(response));
     }
 
+    pub(crate) fn handle_orchestrate_command(&mut self, command_text: String) {
+        // Parse: "/orchestrate <prompt> [seed]"
+        let trimmed = command_text.trim();
+        if trimmed.is_empty() {
+            let key = self.next_internal_key();
+            let _ = self.history_insert_with_key_global(
+                Box::new(history_cell::new_background_event(
+                    "Usage: /orchestrate <prompt> [seed]".to_string(),
+                )),
+                key,
+            );
+            self.request_redraw();
+            return;
+        }
+
+        // Split last token as optional seed if it parses as u32
+        let mut parts: Vec<&str> = trimmed.split_whitespace().collect();
+        let mut seed_opt: Option<String> = None;
+        if let Some(last) = parts.last().copied() {
+            if last.chars().all(|c| c.is_ascii_digit()) {
+                seed_opt = Some(last.to_string());
+                parts.pop();
+            }
+        }
+        let prompt = parts.join(" ");
+        let seed_arg = seed_opt.unwrap_or_else(|| "42".to_string());
+
+        // Announce start
+        let msg = format!("▶ orchestrate: '{}' (seed {})", prompt, seed_arg);
+        let key2 = self.next_internal_key();
+        let _ = self.history_insert_with_key_global(
+            Box::new(history_cell::new_background_event(msg)),
+            key2,
+        );
+        self.request_redraw();
+
+        // Spawn the orchestrate script asynchronously, capture stdout and surface results
+        let app_event_tx = self.app_event_tx.clone();
+        let cwd = std::env::current_dir().ok();
+        tokio::spawn(async move {
+            use codex_core::protocol::{BackgroundEventEvent, Event, EventMsg};
+            use tokio::process::Command;
+            let mut cmd = Command::new("scripts/agentos/orchestrate.sh");
+            cmd.arg(&prompt).arg(&seed_arg);
+            if let Some(cwd) = cwd.as_ref() { cmd.current_dir(cwd); }
+            match cmd.output().await {
+                Ok(out) => {
+                    let mut body = String::new();
+                    if !out.stdout.is_empty() {
+                        if let Ok(s) = String::from_utf8(out.stdout.clone()) { body.push_str(&s); }
+                    }
+                    if !out.stderr.is_empty() {
+                        if let Ok(s) = String::from_utf8(out.stderr.clone()) {
+                            if !body.is_empty() { body.push_str("\n"); }
+                            body.push_str(&s);
+                        }
+                    }
+                    let summary = if out.status.success() {
+                        format!("✅ orchestrate completed\n{}", body.trim())
+                    } else {
+                        format!("✖ orchestrate failed (exit {})\n{}", out.status.code().unwrap_or(-1), body.trim())
+                    };
+                    let _ = app_event_tx.send(AppEvent::CodexEvent(Event {
+                        id: uuid::Uuid::new_v4().to_string(),
+                        event_seq: 0,
+                        msg: EventMsg::BackgroundEvent(BackgroundEventEvent { message: summary }),
+                        order: None,
+                    }));
+                }
+                Err(e) => {
+                    let _ = app_event_tx.send(AppEvent::CodexEvent(codex_core::protocol::Event {
+                        id: uuid::Uuid::new_v4().to_string(),
+                        event_seq: 0,
+                        msg: codex_core::protocol::EventMsg::BackgroundEvent(
+                            codex_core::protocol::BackgroundEventEvent {
+                                message: format!("✖ orchestrate failed to start: {e}"),
+                            },
+                        ),
+                        order: None,
+                    }));
+                }
+            }
+        });
+    }
+
     pub(crate) fn handle_github_command(&mut self, command_text: String) {
         let trimmed = command_text.trim();
         let enabled = self.config.github.check_workflows_on_push;

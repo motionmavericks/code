@@ -833,6 +833,11 @@ impl App<'_> {
                                 widget.handle_github_command(command_args);
                             }
                         }
+                        SlashCommand::Orchestrate => {
+                            if let AppState::Chat { widget } = &mut self.app_state {
+                                widget.handle_orchestrate_command(command_args);
+                            }
+                        }
                         SlashCommand::Mcp => {
                             if let AppState::Chat { widget } = &mut self.app_state {
                                 widget.handle_mcp_command(command_args);

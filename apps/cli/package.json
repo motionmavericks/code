@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "bin": {
-    "code-os": "bin/code-os.js"
+    "code-os": "bin/launcher.js",
+    "code-os-cli": "bin/code-os.js"
   },
   "engines": {
     "node": ">=20"
