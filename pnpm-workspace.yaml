@@ -1,5 +1,7 @@
 packages:
   - docs
+  - packages/*
+  - apps/*
 
 ignoredBuiltDependencies:
   - esbuild
