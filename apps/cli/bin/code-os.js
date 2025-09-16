@@ -62,15 +62,33 @@ function plan(prompt, seedOpt) {
   return { ok: true, graph, replay: { graph, frames } };
 }
 
-function solve(graphPath) {
+function solve(graphPath, streamTo) {
   const abs = path.resolve(process.cwd(), graphPath);
   const graph = JSON.parse(fs.readFileSync(abs, 'utf8'));
   const ts = new Date().toISOString();
-  const frames = [
-    { ts, event: 'begin' },
-    ...graph.nodes.map(n => ({ ts, event: 'node', meta: { id: n.id, status: 'ok' } })),
-    { ts, event: 'end' }
-  ];
+  const frames = [ { ts, event: 'begin' } ];
+  let seq = 0;
+  let streamFd = null;
+  if (streamTo) {
+    const outAbs = path.resolve(process.cwd(), streamTo);
+    fs.mkdirSync(path.dirname(outAbs), { recursive: true });
+    streamFd = fs.openSync(outAbs, 'w');
+  }
+  const seed = (graph.seed ?? 0) >>> 0;
+  for (const n of graph.nodes) {
+    const f = { ts, event: 'node', meta: { id: n.id, status: 'ok' } };
+    frames.push(f);
+    if (streamFd !== null) {
+      const id = `solve:${seed}:${++seq}`;
+      const chunk = { kind: 'answer', id, text: `[${n.kind}] ${n.label}` };
+      fs.writeSync(streamFd, JSON.stringify(chunk) + "\n");
+    }
+  }
+  frames.push({ ts, event: 'end' });
+  if (streamFd !== null) {
+    fs.writeSync(streamFd, JSON.stringify({ done: true }) + "\n");
+    fs.closeSync(streamFd);
+  }
   return { ok: true, run: { startedAt: ts, finishedAt: ts, frames } };
 }
 
@@ -159,14 +177,15 @@ function main(argv) {
     return;
   }
   if (cmd === 'solve') {
-    let i = 1; let transcript;
+    let i = 1; let transcript; let streamTo;
     while (i < args.length && args[i].startsWith('--')) {
       if (args[i] === '--transcript') { transcript = args[i+1]; i += 2; continue; }
+      if (args[i] === '--stream-to') { streamTo = args[i+1]; i += 2; continue; }
       break;
     }
     const file = args[i];
     if (!file) { process.stderr.write('error: missing <graph.json>\n'); usage(1); }
-    const out = solve(file);
+    const out = solve(file, streamTo);
     if (transcript) writeTranscript(transcript, out);
     process.stdout.write(JSON.stringify(out, null, 2) + '\n');
     return;
