@@ -119,3 +119,39 @@ env = { API_KEY = "your-api-key" }
 
 # File Opener Configuration
 file-opener = "vscode"  # Options: vscode, vscode-insiders, windsurf, cursor, none
+
+# -----------------------------------------------------------------------------
+# Provider & Agent‑OS Examples (commented)
+#
+# [providers.anthropic]
+# model = "claude-3-7-sonnet"
+# max_output_tokens = 4096
+#
+# [providers.openai]
+# model = "gpt-4o-mini"
+# max_output_tokens = 4096
+#
+# [providers.gemini]
+# model = "gemini-2.0-pro"
+# max_output_tokens = 4096
+#
+# [providers.qwen]
+# model = "qwen2.5-coder"
+# # The CLI may mirror QWEN_API_KEY↔DASHSCOPE_API_KEY and *_BASE_URL
+# # QWEN_MODEL env may override `model` when present.
+#
+# [agentos]
+# enabled = true
+# deterministic = true
+# default_seed = 42
+# graph_max_nodes = 50
+#
+# [safety]
+# default_deny = true
+# require_approvals = true
+# max_shell_seconds = 60
+# network_egress = ["github.com", "docs.rs"]
+#
+# [approvals]
+# mode = "on-request"   # or "untrusted", "never"
+# timeout_seconds = 90
