@@ -12,7 +12,7 @@ import path from 'node:path';
 import os from 'node:os';
 
 function usage(code = 0) {
-  const msg = `\nUsage:\n  code-os plan [--seed N] <prompt>\n  code-os solve <graph.json>\n  code-os replay <replay.json>\n  code-os code <prompt>            # stub to mirror /code flow\n  code-os stream-plan <prompt>     # prints words with stable ids\n  code-os tools-audit-demo        # demo ToolHost audit JSONL\n`;
+  const msg = `\nUsage:\n  code-os plan [--seed N] [--transcript FILE] <prompt>\n  code-os solve [--transcript FILE] <graph.json>\n  code-os replay [--transcript FILE] <replay.json>\n  code-os code  [--transcript FILE] <prompt>\n  code-os stream-plan <prompt>\n  code-os tools-audit-demo\n`;
   process.stdout.write(msg);
   process.exit(code);
 }
@@ -96,26 +96,53 @@ function defaultAuditPath() {
   return path.join(home, '.code-os', 'audit', `cli-run-${stamp}.jsonl`);
 }
 
+function writeTranscript(outPath, data) {
+  const abs = path.resolve(process.cwd(), outPath);
+  fs.mkdirSync(path.dirname(abs), { recursive: true });
+  const canon = canonicalize(data);
+  fs.writeFileSync(abs, JSON.stringify(canon, null, 2) + '\n', 'utf8');
+}
+
+function canonicalize(obj) {
+  if (obj === null || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(canonicalize);
+  const keys = Object.keys(obj).sort();
+  const out = {};
+  for (const k of keys) out[k] = canonicalize(obj[k]);
+  return out;
+}
+
 function main(argv) {
   const args = argv.slice(2);
   if (args.length === 0) usage(1);
   const cmd = args[0];
   if (cmd === 'plan') {
-    let seed = undefined; let i = 1;
-    if (args[1] === '--seed') { seed = Number(args[2]); i = 3; }
+    let seed = undefined; let i = 1; let transcript;
+    while (i < args.length && args[i].startsWith('--')) {
+      if (args[i] === '--seed') { seed = Number(args[i+1]); i += 2; continue; }
+      if (args[i] === '--transcript') { transcript = args[i+1]; i += 2; continue; }
+      break;
+    }
     const prompt = args.slice(i).join(' ').trim();
     if (!prompt) { process.stderr.write('error: missing <prompt>\n'); usage(1); }
     const planning = await import(new URL('../../packages/planning/src/index.js', import.meta.url));
     const planned = planning.plan({ prompt, seed });
     const replay = planning.serializeReplay(planned.graph);
     const out = { ok: true, graph: planned.graph, replay };
+    if (transcript) writeTranscript(transcript, out);
     process.stdout.write(JSON.stringify(out, null, 2) + '\n');
     return;
   }
   if (cmd === 'code') {
-    const prompt = args.slice(1).join(' ').trim();
+    let i = 1; let transcript;
+    while (i < args.length && args[i].startsWith('--')) {
+      if (args[i] === '--transcript') { transcript = args[i+1]; i += 2; continue; }
+      break;
+    }
+    const prompt = args.slice(i).join(' ').trim();
     if (!prompt) { process.stderr.write('error: missing <prompt>\n'); usage(1); }
     const out = { ok: true, dryRunPatch: writeDryRunPatch(prompt), notes: `stub code for: ${prompt}` };
+    if (transcript) writeTranscript(transcript, out);
     process.stdout.write(JSON.stringify(out, null, 2) + '\n');
     return;
   }
@@ -132,16 +159,28 @@ function main(argv) {
     return;
   }
   if (cmd === 'solve') {
-    const file = args[1];
+    let i = 1; let transcript;
+    while (i < args.length && args[i].startsWith('--')) {
+      if (args[i] === '--transcript') { transcript = args[i+1]; i += 2; continue; }
+      break;
+    }
+    const file = args[i];
     if (!file) { process.stderr.write('error: missing <graph.json>\n'); usage(1); }
     const out = solve(file);
+    if (transcript) writeTranscript(transcript, out);
     process.stdout.write(JSON.stringify(out, null, 2) + '\n');
     return;
   }
   if (cmd === 'replay') {
-    const file = args[1];
+    let i = 1; let transcript;
+    while (i < args.length && args[i].startsWith('--')) {
+      if (args[i] === '--transcript') { transcript = args[i+1]; i += 2; continue; }
+      break;
+    }
+    const file = args[i];
     if (!file) { process.stderr.write('error: missing <replay.json>\n'); usage(1); }
     const out = replay(file);
+    if (transcript) writeTranscript(transcript, out);
     process.stdout.write(JSON.stringify(out, null, 2) + '\n');
     return;
   }
