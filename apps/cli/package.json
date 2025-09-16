@@ -1,0 +1,14 @@
+{
+  "name": "@code-os/cli",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "code-os": "bin/code-os.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "description": "Minimal CLI stubs for /plan, /solve, /replay to integrate Agent-OS flows.",
+  "license": "Apache-2.0"
+}
