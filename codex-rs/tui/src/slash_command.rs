@@ -58,9 +58,9 @@ impl SlashCommand {
             SlashCommand::Reasoning => "change reasoning effort (minimal/low/medium/high)",
             SlashCommand::Verbosity => "change text verbosity (high/medium/low)",
             SlashCommand::New => "start a new chat during a conversation",
-            SlashCommand::Init => "create an AGENTS.md file with instructions for Code",
+            SlashCommand::Init => "create an AGENTS.md file with instructions for Code OS",
             SlashCommand::Compact => "summarize conversation to prevent hitting the context limit",
-            SlashCommand::Quit => "exit Code",
+            SlashCommand::Quit => "exit Code OS",
             SlashCommand::Diff => "show git diff (including untracked files)",
             SlashCommand::Mention => "mention a file",
             SlashCommand::Status => "show current session configuration and token usage",
@@ -72,7 +72,7 @@ impl SlashCommand {
             SlashCommand::Mcp => "manage MCP servers (status/on/off/add)",
             SlashCommand::Orchestrate => "plan→solve→code with transcripts (Agent‑OS)",
             SlashCommand::Perf => "performance tracing (on/off/show/reset)",
-            SlashCommand::Logout => "log out of Code",
+            SlashCommand::Logout => "log out of Code OS",
             #[cfg(debug_assertions)]
             SlashCommand::TestApproval => "test approval request",
         }

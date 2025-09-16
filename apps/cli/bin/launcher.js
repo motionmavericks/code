@@ -5,8 +5,10 @@
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const repoRoot = path.resolve(path.join(path.dirname(new URL(import.meta.url).pathname), '..', '..'));
+const __file = fileURLToPath(import.meta.url);
+const repoRoot = path.resolve(path.join(path.dirname(__file), '..', '..', '..'));
 const devFast = path.join(repoRoot, 'codex-rs', 'target', 'dev-fast', 'code');
 const release = path.join(repoRoot, 'codex-rs', 'target', 'release', 'code');
 
@@ -22,4 +24,3 @@ child.on('exit', (code, signal) => {
   if (signal) process.kill(process.pid, signal);
   process.exit(code ?? 0);
 });
-

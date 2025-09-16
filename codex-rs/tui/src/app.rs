@@ -1068,7 +1068,7 @@ impl App<'_> {
                         )),
                         crossterm::terminal::Clear(crossterm::terminal::ClearType::All),
                         crossterm::cursor::MoveTo(0, 0),
-                        crossterm::terminal::SetTitle("Code"),
+                        crossterm::terminal::SetTitle("Code OS"),
                         crossterm::terminal::EnableLineWrap
                     );
 
@@ -1109,7 +1109,7 @@ impl App<'_> {
                         )),
                         crossterm::terminal::Clear(crossterm::terminal::ClearType::All),
                         crossterm::cursor::MoveTo(0, 0),
-                        crossterm::terminal::SetTitle("Code"),
+                        crossterm::terminal::SetTitle("Code OS"),
                         crossterm::terminal::EnableLineWrap
                     );
 

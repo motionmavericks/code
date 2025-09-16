@@ -123,7 +123,7 @@ impl UserApprovalWidget<'_> {
                     Line::from(""), // extra spacing above the prompt
                     Line::from(vec![
                         "? ".fg(crate::colors::info()),
-                        "Code wants to run ".bold(),
+                        "Code OS wants to run ".bold(),
                         cmd_span,
                     ]),
                     Line::from(""),

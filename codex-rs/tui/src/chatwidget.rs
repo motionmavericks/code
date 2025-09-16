@@ -4474,8 +4474,8 @@ impl ChatWidget<'_> {
             if cmd_str == "test-approval" {
                 continue;
             }
-            // Prefer "Code" branding in the Help panel
-            let desc = cmd.description().replace("Codex", "Code");
+            // Prefer "Code OS" branding in the Help panel
+            let desc = cmd.description().replace("Codex", "Code OS");
             // Render as "/command  —  description"
             lines.push(RtLine::from(vec![
                 RtSpan::styled(format!("/{cmd_str:<12}"), t_fg),

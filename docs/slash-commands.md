@@ -1,6 +1,6 @@
 # Slash Commands
 
-Codex CLI supports a set of slash commands you can type at the start of the
+Code OS supports a set of slash commands you can type at the start of the
 composer input. These commands provide quick actions, toggles, or expand into
 full prompts. This document lists all built‑in commands and what they do.
 
@@ -17,12 +17,12 @@ Notes
 - `/chrome`: connect to Chrome.
 - `/new`: start a new chat during a conversation.
 - `/resume`: resume a past session for this folder.
-- `/quit`: exit Codex.
-- `/logout`: log out of Codex.
+- `/quit`: exit Code OS.
+- `/logout`: log out of Code OS.
 
 ## Workspace & Git
 
-- `/init`: create an `AGENTS.md` file with instructions for Codex.
+- `/init`: create an `AGENTS.md` file with instructions for Code OS.
 - `/diff`: show `git diff` (including untracked files).
 - `/branch [task]`: create a worktree branch and switch to it. If a
   task/description is provided, it is used when naming the branch.
@@ -53,6 +53,17 @@ typically start multiple agents. They require a task/problem description.
 - `/plan <task>`: create a comprehensive plan (multiple agents). Prompt‑expanding.
 - `/solve <problem>`: solve a challenging problem (multiple agents). Prompt‑expanding.
 - `/code <task>`: perform a coding task (multiple agents). Prompt‑expanding.
+
+## Agent‑OS Orchestration
+
+- `/orchestrate <prompt> [seed]`: convenience command that runs the
+  Agent‑OS style flow (plan → solve → code) and emits transcripts. Under the
+  hood it invokes `scripts/agentos/orchestrate.sh`, which uses the
+  `code-os` CLI at `apps/cli/bin/code-os.js` to:
+  - `plan` → write a deterministic plan JSON (`--seed`, optional; default 42)
+  - `solve` → stream JSONL chunks (stable ids) and write a transcript JSON
+  - `code` → produce a dry‑run patch and write a transcript JSON
+  Generated files are stored under `fixtures/runs/<timestamp>/`.
 
 ## Development‑Only
 

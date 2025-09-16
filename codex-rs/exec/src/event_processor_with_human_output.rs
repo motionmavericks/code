@@ -145,7 +145,7 @@ impl EventProcessor for EventProcessorWithHumanOutput {
         let version = codex_version::version();
         ts_println!(
             self,
-            "Code v{}\n--------",
+            "Code OS v{}\n--------",
             version
         );
 

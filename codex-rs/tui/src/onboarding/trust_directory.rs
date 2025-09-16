@@ -96,7 +96,7 @@ impl WidgetRef for &TrustDirectoryWidget {
             lines.push(create_option(
                 0,
                 TrustDirectorySelection::Trust,
-                "Yes, allow Code to work in this folder without asking for approval",
+                "Yes, allow Code OS to work in this folder without asking for approval",
             ));
             lines.push(create_option(
                 1,
@@ -107,7 +107,7 @@ impl WidgetRef for &TrustDirectoryWidget {
             lines.push(create_option(
                 0,
                 TrustDirectorySelection::Trust,
-                "Allow Code to work in this folder without asking for approval",
+                "Allow Code OS to work in this folder without asking for approval",
             ));
             lines.push(create_option(
                 1,
