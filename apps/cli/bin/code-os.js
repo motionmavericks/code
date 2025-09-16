@@ -12,7 +12,7 @@ import path from 'node:path';
 import os from 'node:os';
 
 function usage(code = 0) {
-  const msg = `\nUsage:\n  code-os plan [--seed N] [--transcript FILE] <prompt>\n  code-os solve [--transcript FILE] <graph.json>\n  code-os replay [--transcript FILE] <replay.json>\n  code-os code  [--transcript FILE] <prompt>\n  code-os stream-plan <prompt>\n  code-os tools-audit-demo\n`;
+  const msg = `\nUsage:\n  code-os plan [--seed N] [--transcript FILE] <prompt>\n  code-os solve [--transcript FILE] [--stream-to FILE] [--provider NAME] <graph.json>\n  code-os replay [--transcript FILE] <replay.json>\n  code-os code  [--transcript FILE] <prompt>\n  code-os stream-plan <prompt>\n  code-os tools-audit-demo\n`;
   process.stdout.write(msg);
   process.exit(code);
 }
@@ -62,7 +62,7 @@ function plan(prompt, seedOpt) {
   return { ok: true, graph, replay: { graph, frames } };
 }
 
-function solve(graphPath, streamTo) {
+function solve(graphPath, streamTo, provider) {
   const abs = path.resolve(process.cwd(), graphPath);
   const graph = JSON.parse(fs.readFileSync(abs, 'utf8'));
   const ts = new Date().toISOString();
@@ -75,13 +75,18 @@ function solve(graphPath, streamTo) {
     streamFd = fs.openSync(outAbs, 'w');
   }
   const seed = (graph.seed ?? 0) >>> 0;
+  let usage = { prompt: 0, completion: 0, total: 0 };
   for (const n of graph.nodes) {
     const f = { ts, event: 'node', meta: { id: n.id, status: 'ok' } };
     frames.push(f);
     if (streamFd !== null) {
       const id = `solve:${seed}:${++seq}`;
-      const chunk = { kind: 'answer', id, text: `[${n.kind}] ${n.label}` };
-      fs.writeSync(streamFd, JSON.stringify(chunk) + "\n");
+      const reasoning = { kind: 'reasoning', id, text: `[${provider}] considering ${n.kind} → ${n.label}` };
+      fs.writeSync(streamFd, JSON.stringify(reasoning) + "\n");
+      const answer = { kind: 'answer', id: `solve:${seed}:${++seq}`, text: `[${n.kind}] ${n.label}` };
+      fs.writeSync(streamFd, JSON.stringify(answer) + "\n");
+      usage.prompt += 1; // one node considered
+      usage.completion += 2; // reasoning + answer
     }
   }
   frames.push({ ts, event: 'end' });
@@ -89,7 +94,8 @@ function solve(graphPath, streamTo) {
     fs.writeSync(streamFd, JSON.stringify({ done: true }) + "\n");
     fs.closeSync(streamFd);
   }
-  return { ok: true, run: { startedAt: ts, finishedAt: ts, frames } };
+  usage.total = usage.prompt + usage.completion;
+  return { ok: true, run: { startedAt: ts, finishedAt: ts, frames, usage, provider } };
 }
 
 function replay(replayPath) {
@@ -177,15 +183,16 @@ function main(argv) {
     return;
   }
   if (cmd === 'solve') {
-    let i = 1; let transcript; let streamTo;
+    let i = 1; let transcript; let streamTo; let provider = 'local';
     while (i < args.length && args[i].startsWith('--')) {
       if (args[i] === '--transcript') { transcript = args[i+1]; i += 2; continue; }
       if (args[i] === '--stream-to') { streamTo = args[i+1]; i += 2; continue; }
+      if (args[i] === '--provider') { provider = String(args[i+1] || 'local'); i += 2; continue; }
       break;
     }
     const file = args[i];
     if (!file) { process.stderr.write('error: missing <graph.json>\n'); usage(1); }
-    const out = solve(file, streamTo);
+    const out = solve(file, streamTo, provider);
     if (transcript) writeTranscript(transcript, out);
     process.stdout.write(JSON.stringify(out, null, 2) + '\n');
     return;

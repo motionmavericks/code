@@ -1,0 +1,24 @@
+# Optional workflow (manual only). Does not affect local builds.
+name: AgentOS Transcript Replay (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      transcript:
+        description: Path to transcript JSON (repo-relative)
+        required: false
+        default: fixtures/golden/plan-basic.json
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Verify transcript
+        run: |
+          chmod +x scripts/agentos/transcript-verify.sh
+          ./scripts/agentos/transcript-verify.sh "${{ github.event.inputs.transcript }}"
