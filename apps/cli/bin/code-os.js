@@ -4,6 +4,8 @@
 //   code-os plan [--seed N] <prompt>
 //   code-os solve <graph.json>
 //   code-os replay <replay.json>
+//   code-os code <prompt>            # stub to mirror /code flow
+//   code-os stream-plan <prompt>     # prints words with stable ids
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -91,6 +93,25 @@ function main(argv) {
     process.stdout.write(JSON.stringify(out, null, 2) + '\n');
     return;
   }
+  if (cmd === 'code') {
+    const prompt = args.slice(1).join(' ').trim();
+    if (!prompt) { process.stderr.write('error: missing <prompt>\n'); usage(1); }
+    const out = { ok: true, changes: [], notes: `stub code for: ${prompt}` };
+    process.stdout.write(JSON.stringify(out, null, 2) + '\n');
+    return;
+  }
+  if (cmd === 'stream-plan') {
+    const prompt = args.slice(1).join(' ').trim();
+    if (!prompt) { process.stderr.write('error: missing <prompt>\n'); usage(1); }
+    let seq = 0; const seed = 0;
+    const parts = prompt.split(/(\s+)/).filter(Boolean);
+    for (const p of parts) {
+      const id = `cli:${seed}:${++seq}`;
+      process.stdout.write(JSON.stringify({ kind: 'answer', id, text: p }) + '\n');
+    }
+    process.stdout.write(JSON.stringify({ done: true }) + '\n');
+    return;
+  }
   if (cmd === 'solve') {
     const file = args[1];
     if (!file) { process.stderr.write('error: missing <graph.json>\n'); usage(1); }
@@ -109,4 +130,3 @@ function main(argv) {
 }
 
 main(process.argv);
-
