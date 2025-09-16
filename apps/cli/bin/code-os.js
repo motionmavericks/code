@@ -9,9 +9,10 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 
 function usage(code = 0) {
-  const msg = `\nUsage:\n  code-os plan [--seed N] <prompt>\n  code-os solve <graph.json>\n  code-os replay <replay.json>\n`;
+  const msg = `\nUsage:\n  code-os plan [--seed N] <prompt>\n  code-os solve <graph.json>\n  code-os replay <replay.json>\n  code-os code <prompt>            # stub to mirror /code flow\n  code-os stream-plan <prompt>     # prints words with stable ids\n  code-os tools-audit-demo        # demo ToolHost audit JSONL\n`;
   process.stdout.write(msg);
   process.exit(code);
 }
@@ -80,6 +81,21 @@ function replay(replayPath) {
   return { ok, details: ok ? 'valid' : 'invalid' };
 }
 
+function writeDryRunPatch(prompt) {
+  const outDir = path.resolve(process.cwd(), 'fixtures/patches');
+  fs.mkdirSync(outDir, { recursive: true });
+  const p = path.join(outDir, 'dry-run.patch');
+  const body = `*** Begin Patch\n*** Add File: docs/AGENTOS_DRYRUN.md\n+Agent-OS dry-run for prompt:\n+\n+${prompt.replaceAll('\\n', '\\n+')}\n+\n+This is a preview-only change.\n*** End Patch\n`;
+  fs.writeFileSync(p, body, 'utf8');
+  return p;
+}
+
+function defaultAuditPath() {
+  const home = os.homedir() || process.cwd();
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  return path.join(home, '.code-os', 'audit', `cli-run-${stamp}.jsonl`);
+}
+
 function main(argv) {
   const args = argv.slice(2);
   if (args.length === 0) usage(1);
@@ -89,14 +105,17 @@ function main(argv) {
     if (args[1] === '--seed') { seed = Number(args[2]); i = 3; }
     const prompt = args.slice(i).join(' ').trim();
     if (!prompt) { process.stderr.write('error: missing <prompt>\n'); usage(1); }
-    const out = plan(prompt, seed);
+    const planning = await import(new URL('../../packages/planning/src/index.js', import.meta.url));
+    const planned = planning.plan({ prompt, seed });
+    const replay = planning.serializeReplay(planned.graph);
+    const out = { ok: true, graph: planned.graph, replay };
     process.stdout.write(JSON.stringify(out, null, 2) + '\n');
     return;
   }
   if (cmd === 'code') {
     const prompt = args.slice(1).join(' ').trim();
     if (!prompt) { process.stderr.write('error: missing <prompt>\n'); usage(1); }
-    const out = { ok: true, changes: [], notes: `stub code for: ${prompt}` };
+    const out = { ok: true, dryRunPatch: writeDryRunPatch(prompt), notes: `stub code for: ${prompt}` };
     process.stdout.write(JSON.stringify(out, null, 2) + '\n');
     return;
   }
@@ -124,6 +143,15 @@ function main(argv) {
     if (!file) { process.stderr.write('error: missing <replay.json>\n'); usage(1); }
     const out = replay(file);
     process.stdout.write(JSON.stringify(out, null, 2) + '\n');
+    return;
+  }
+  if (cmd === 'tools-audit-demo') {
+    const auditPath = defaultAuditPath();
+    const tools = await import(new URL('../../packages/tools/src/index.js', import.meta.url));
+    const host = new tools.ToolHost({ agent: 'cli-demo', tools: ['shell.run', 'fs.write'] }, auditPath);
+    await host.invoke({ tool: 'shell.run', args: { cmd: 'echo hello' } });
+    await host.invoke({ tool: 'fs.write', args: { path: '/tmp/demo.txt', data: 'hi' } });
+    process.stdout.write(JSON.stringify({ ok: true, auditPath }, null, 2) + '\n');
     return;
   }
   usage(1);
